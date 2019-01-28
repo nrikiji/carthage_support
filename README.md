@@ -9,16 +9,6 @@ It is a tool to automate manual work in xcode which is done when installing libr
 
 ## Installation
 
-```ruby
-gem 'carthage_support'
-```
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
     $ gem install carthage_support
 
 ## Usage
