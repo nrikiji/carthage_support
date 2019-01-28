@@ -25,7 +25,7 @@ module CarthageSupport
         frameworks = []
         project = nil
         
-        yaml = Hashie::Mash.load("../work/carthage.yml")
+        yaml = Hashie::Mash.load("carthage.yml")
         yaml.each_with_index do |obj,i|
           if obj.first == "project_path"
             project = Xcodeproj::Project.open(obj.last)
@@ -41,10 +41,13 @@ module CarthageSupport
           raise "projectfile is not"
         end
 
+        ## Create Cartfile
+        File.write("Cartfile", repos.join("\n"))
+
         ## Framework Search Paths
         project.targets.each do |target|
-          ["Debug", "Release"].each do |config|
-            paths = target.build_settings(config)["FRAMEWORK_SEARCH_PATHS"]
+          target.build_configuration_list.build_configurations.each do |config|
+            paths = target.build_settings(config.name)["FRAMEWORK_SEARCH_PATHS"]
             path_carthage = "$(PROJECT_DIR)/Carthage/Build/iOS"
             if paths.nil?
               paths = ['$(inherited)', path_carthage]
@@ -53,7 +56,7 @@ module CarthageSupport
                 paths.push(path_carthage)
               end
             end
-            target.build_settings(config)["FRAMEWORK_SEARCH_PATHS"] = paths
+            target.build_settings(config.name)["FRAMEWORK_SEARCH_PATHS"] = paths
           end
         end
 
@@ -92,12 +95,26 @@ module CarthageSupport
         project.targets.each do |target|
           target.build_phases.each do |build_phase|
             if build_phase.isa == "PBXFrameworksBuildPhase"
+              build_phase.files_references.each do |ref|
+                unless ref.name.nil?
+                  if ref.name.include?("Carthage_")
+                    build_phase.remove_file_reference(ref)
+                  end
+                end
+              end
+            end
+          end
+        end
+        
+        project.targets.each do |target|
+          target.build_phases.each do |build_phase|
+            if build_phase.isa == "PBXFrameworksBuildPhase"
               frameworks.each do |framework|
                 framework_ref = project.new(Xcodeproj::Project::Object::PBXFileReference)
-                framework_ref.name = framework
+                framework_ref.name = "Carthage_" + framework
                 framework_ref.path = "Carthage/Build/iOS/" + framework
 
-                count = build_phase.files_references.count{|ref| ref.name == framework && framework_ref.path == ref.path }
+                count = build_phase.files_references.count{|ref| ref.name == "Carthage_" + framework && framework_ref.path == ref.path }
                 if count == 0
                   build_phase.add_file_reference(framework_ref, false)
                 end
