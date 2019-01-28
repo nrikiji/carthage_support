@@ -32,6 +32,14 @@ github "Alamofire/Alamofire":
   - Alamofire.framework
 ```
 
+execute
+```
+$ cd /path/to/project_root
+$ carthage_support setup
+・・・
+$ carthage update
+```
+
 ## License
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
